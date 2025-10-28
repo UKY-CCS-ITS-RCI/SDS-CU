@@ -1,7 +1,7 @@
 # SDS Deployment Guide
 
 This guide explains how to set up and run **SDS** on a Linux system using Docker.  
-Follow each step in order — starting with Docker installation, then user setup, firewall configuration, cloning repositories, and running the container.
+Follow each step in order — starting with Docker installation, then user and firewall setup, cloning repositories, and running the container.
 
 ---
 
@@ -26,39 +26,32 @@ systemctl status docker
 
 ---
 
-## Step 1 – Create user 'sds'
+## Step 1 – Create user 'sds' and configure Docker access (as root)
 
 ```bash
 # Create a new user for SDS
 adduser sds
 passwd sds
-```
 
----
-
-## Step 2 – Run as root
-
-```bash
-# Open required ports for HTTP (80) and app traffic (8080)
-firewall-cmd --permanent --add-port=80/tcp
-firewall-cmd --permanent --add-port=8080/tcp
-firewall-cmd --reload
+# Add 'sds' to docker group
+usermod -aG docker sds
 
 # Allow passwordless docker for user 'sds'
 echo "sds ALL=(ALL) NOPASSWD:/usr/bin/docker" > /etc/sudoers.d/sds
 chmod 440 /etc/sudoers.d/sds
 
-# Add 'sds' to docker group
-usermod -aG docker sds
-
-# Reload firewall and verify
+# Open required ports for HTTP (80) and app traffic (8080)
+firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --permanent --add-port=8080/tcp
 firewall-cmd --reload
+
+# Verify firewall settings
 firewall-cmd --list-ports
 ```
 
 ---
 
-## Step 3 – Switch to user 'sds'
+## Step 2 – Switch to user 'sds'
 
 ```bash
 su - sds
@@ -76,7 +69,7 @@ nano config.yaml
 
 ---
 
-## Step 4 – Prepare spider_data directories
+## Step 3 – Prepare spider_data directories
 
 ```bash
 mkdir spider_data
@@ -95,7 +88,7 @@ cd ~/SDS-Public/
 
 ---
 
-## Step 5 – Build and start Docker containers
+## Step 4 – Build and start Docker containers
 
 ```bash
 # Build and start in detached (daemon) mode
@@ -107,7 +100,7 @@ sudo docker ps
 
 ---
 
-## Step 6 – Rebuild or restart after config changes
+## Step 5 – Rebuild or restart after config changes
 
 If you modify `config.yaml` or other files:
 
@@ -128,5 +121,5 @@ sudo docker compose start
 
 ---
 
-✅ **That’s it!**  
-Your SDS service should now be running and accessible on ports **80** and **8080**.
+**That’s it!**  
+Your SDS service should now be running and accessible on ports **8080**.
