@@ -1,0 +1,21 @@
+api:
+  use_api: True
+  api_key: "get-your-api-key-from-admin"
+  use_curated_info: True
+  use_ai_info: True
+styles:
+  primary_color: ""
+  secondary_color: ""
+  site_title: "SDS"
+  logo: ""
+general:
+  user_name: user
+  password: user
+  share_software: False
+  show_container_page: False
+  hide_data: ['Containers']
+parsing:
+  lmod_spider:
+    version_cleaner: '/|-(?=\d)'
+    name_pattern: '(.*?)-(\d.*?)'
+    spider_description_separator: '----'
