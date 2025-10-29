@@ -2,6 +2,7 @@
 
 This guide explains how to set up and run **SDS** on a Linux system using Docker.  
 Follow each step in order — starting with Docker installation, then user and firewall setup, cloning repositories, and running the container.
+For more detailed customization see https://github.com/access-ci-org/SDS-Public/tree/stand-alone 
 
 ---
 
