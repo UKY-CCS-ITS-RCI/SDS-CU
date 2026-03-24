@@ -139,6 +139,32 @@ docker rm sds
 Your SDS service should now be running and accessible on ports **8080**.
 
 ---
+
+## Updating SDS
+Stop and remove the current container, pull the latest image, and rerun the command
+```
+# stop and remove container
+docker stop sds && docker rm sds
+
+# pull latest image
+docker image pull public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+
+# run container from latest image (on port 8080)
+docker run -d -p 8080:80 \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
+-v ./spider_data:/sds/spider_data \
+-v ./websites:/sds/app/data/websites \
+-v ./logs:/var/log/supervisor \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log" \
+--name sds \
+public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+
+# View the latest release information and other instructions here:
+# ECR: https://gallery.ecr.aws/access-ci-org-public-containers/support/standalone-sds
+# GitHub: https://github.com/access-ci-org/SDS-Public/releases
+
+```
+
 ## Enabling HTTPS/SSL
 
 First make sure port 443 is open on your machine:
@@ -192,8 +218,7 @@ Stop and re-run the container with the following changes:
 docker stop sds && docker rm sds
 
 # rerun the container with the appropriate port and mounts
-# sudo permissions may be required for exposing port 443
-sudo docker run -d -p 443:443 \
+docker run -d -p 443:443 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
 -v ./spider_data:/sds/spider_data \
 -v ./websites:/sds/app/data/websites \
