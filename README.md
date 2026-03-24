@@ -142,7 +142,7 @@ Your SDS service should now be running and accessible on ports **8080**.
 
 ## Updating SDS
 Stop and remove the current container, pull the latest image, and rerun the command
-```
+```bash
 # stop and remove container
 docker stop sds && docker rm sds
 
@@ -168,7 +168,7 @@ public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ## Enabling HTTPS/SSL
 
 First make sure port 443 is open on your machine:
-```
+```bash
 firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --reload
 
@@ -178,7 +178,7 @@ firewall-cmd --list-ports
 
 Create a `ssl` directory and add your keys into it
 
-```
+```bash
 # make .ssl directory
 mkdir ssl
 # add you ssl certificate (cert.pem) and key (key.pem) to the ssl directory
@@ -186,7 +186,7 @@ mkdir ssl
 ```
 
 Create a nginx config file
-```
+```bash
 cat << EOF > nginx.conf
 server {
     listen 443 ssl;
@@ -213,7 +213,7 @@ Stop and re-run the container with the following changes:
  - Add the appropriate ports (change -p 8080:80 to -p 443:443)
  - Mount the new config to the container (--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default")
 
-```
+```bash
 # stop and remove the container
 docker stop sds && docker rm sds
 
