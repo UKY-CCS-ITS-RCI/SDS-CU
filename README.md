@@ -95,7 +95,7 @@ cd ..
 
 ```bash
 # Start container with minimal mounts
-docker run -d -p 8080:80 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" -v ./spider_data:/sds/spider_data --name sds public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+# docker run -d -p 8080:80 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" -v ./spider_data:/sds/spider_data --name sds public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
 # Or start container and mount minimal and other helpful directories (RECOMMENDED)
 docker run -d -p 8080:80 \
