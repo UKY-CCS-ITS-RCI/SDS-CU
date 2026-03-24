@@ -224,7 +224,7 @@ docker run -d -p 443:443 \
 -v ./websites:/sds/app/data/websites \
 -v ./logs:/var/log/supervisor \
 --mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log" \
---mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default"
+--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default" \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ```
