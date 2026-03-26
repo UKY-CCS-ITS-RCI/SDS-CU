@@ -1,45 +1,38 @@
 # SDS Deployment Guide @ CU
 
-This guide explains how to set up and run **SDS** on a Linux system using Docker.  
-Follow each step in order — starting with Docker installation, then user and firewall setup, cloning repositories, and running the container.
+This guide explains how to set up and run **SDS** on a Linux system using Podman.  
+Follow each step in order — starting with Podman installation, then user and firewall setup, cloning repositories, and running the container.
 For the bare minimum setup see https://github.com/access-ci-org/SDS-Public/tree/stand-alone  
-For more detailed customization see [https://github.com/access-ci-org/SDS-Public/tree/stand-alone ](https://github.com/access-ci-org/SDS-Public/blob/stand-alone/SDS_SETUP.md)  
+For more detailed customization see [https://github.com/access-ci-org/SDS-Public/tree/stand-alone ](https://github.com/access-ci-org/SDS-Public/blob/stand-alone/SDS_SETUP.md)
+
+## Table of Contents
+
+1. [Step 0 – Ensure Podman Is Installed](#step-0--ensure-podman-is-installed)
+2. [Step 1 – Create User 'sds' and Configure Podman Access](#step-1--create-user-sds-and-configure-podman-access)
+3. [Step 2 – Pull Image](#step-2--pull-image)
+4. [Step 3 – Prepare `spider_data` and Other Directories](#step-3--prepare-spider_data-and-other-directories)
+5. [Step 4 – Run the Container](#step-4--run-the-container)
+6. [Step 5 – Stopping and Deleting Containers](#step-5--stopping-and-deleting-containers)
+7. [Updating SDS](#updating-sds)
+8. [Enabling HTTPS/SSL](#enabling-httpsssl)
+9. [Custom or No Example Use](#custom-or-no-example-use)
 
 ---
 
-## Step 0 – Ensure Docker Is Installed
-
-Run these commands as **root**:
-
-```bash
-# Install Docker (choose one based on your system)
-dnf install -y docker
-# or
-yum install -y docker
-
-# Enable and start Docker service
-systemctl enable docker
-systemctl start docker
-
-# Verify Docker is running
-docker --version
-systemctl status docker
-```
+## Step 0 – Ensure Podman is installed
+This should already be done on your system image
 
 ---
 
-## Step 1 – Create user 'sds' and configure Docker access (as root)
+## Step 1 – Create user 'sds' and configure Podman access
 
 ```bash
 # Create a new user for SDS
 adduser sds
 passwd sds
 
-# Add 'sds' to docker group
-usermod -aG docker sds
-
-# Allow passwordless docker for user 'sds'
-echo "sds ALL=(ALL) NOPASSWD:/usr/bin/docker" > /etc/sudoers.d/sds
+# Allow passwordless podman for user 'sds'
+echo "sds ALL=(ALL) NOPASSWD:/usr/bin/podman" > /etc/sudoers.d/sds
 chmod 440 /etc/sudoers.d/sds
 
 # Open required ports for HTTP (80) and app traffic (8080)
@@ -53,13 +46,13 @@ firewall-cmd --list-ports
 
 ---
 
-## Step 2 – Switch to user 'sds'
+## Step 2 – Pull image
 
 ```bash
 su - sds
 
 # Pull container
-docker image pull public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+podman image pull public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
 # Download the configuration file
 wget https://raw.githubusercontent.com/UKY-CCS-ITS-RCI/SDS-CU/main/config.yaml
@@ -95,10 +88,10 @@ cd ..
 
 ```bash
 # Start container with minimal mounts
-# docker run -d -p 8080:80 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" -v ./spider_data:/sds/spider_data --name sds public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+# podman run -d -p 8080:80 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" -v ./spider_data:/sds/spider_data --name sds public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
 # Or start container and mount minimal and other helpful directories (RECOMMENDED)
-docker run -d -p 8080:80 \
+podman run -d -p 8080:80 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
 -v ./spider_data:/sds/spider_data \
 -v ./websites:/sds/app/data/websites \
@@ -110,7 +103,7 @@ public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 # The other directories created in step 3 can also be mounted if used (mount them to `/sds/<folder_name>` in the container)
 
 # Verify running containers
-docker ps -a
+podman ps -a
 ```
 
 ---
@@ -121,13 +114,13 @@ docker ps -a
 
 ```bash
 # Stop running containers
-docker stop sds
+podman stop sds
 
 # Start stopped containers
-docker start sds
+podman start sds
 
 # Remove existing containers
-docker rm sds
+podman rm sds
 
 # if a container is removed you will have to rerun it using the command in step 4
 
@@ -144,13 +137,13 @@ Your SDS service should now be running and accessible on ports **8080**.
 Stop and remove the current container, pull the latest image, and rerun the command
 ```bash
 # stop and remove container
-docker stop sds && docker rm sds
+podman stop sds && podman rm sds
 
 # pull latest image
-docker image pull public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+podman image pull public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
 # run container from latest image (on port 8080)
-docker run -d -p 8080:80 \
+podman run -d -p 8080:80 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
 -v ./spider_data:/sds/spider_data \
 -v ./websites:/sds/app/data/websites \
@@ -215,10 +208,14 @@ Stop and re-run the container with the following changes:
 
 ```bash
 # stop and remove the container
-docker stop sds && docker rm sds
+podman stop sds && podman rm sds
+
+# Give sds sudo permissions
+usermod -aG docker sds
 
 # rerun the container with the appropriate port and mounts
-docker run -d -p 443:443 \
+# You will need to run podman with sudo permissions
+sudo podman run -d -p 443:443 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
 -v ./spider_data:/sds/spider_data \
 -v ./websites:/sds/app/data/websites \
@@ -228,4 +225,57 @@ docker run -d -p 443:443 \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ```
+
+## Custom or No Example Use
+Make sure a `software_uses` directory exists in your system and navigate to it
+```
+mkdir software_uses
+cd software_uses
+```
+
+Inside of each directory create a file with the software name as the file name
+```
+# e.g. 'touch python' for instructions for the python software
+touch <software_name>
+```
+
+**Leave the file empty if you don't want any example usage information to show for that software**
+
+Add any example use information into that file in markdown format
+```bash
+cat << EOF > python
+# Entering python environment
+To enter a python environment run `python3` on your terminal
+
+# Existing a python environment
+To exit a python environment run `exit()` from within the environment
+EOF
+```
+
+Stop and re-run the container with the following changes:
+ - Mount the new example_uses directory to the container (`-v ./software_uses:/sds/software_uses`)
+
+```bash
+# stop and remove the container
+podman stop sds && podman rm sds
+
+# Give sds sudo permissions
+usermod -aG docker sds
+
+# rerun the container with the appropriate port and mounts
+# You will need to run podman with sudo permissions
+sudo podman run -d -p 443:443 \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml" \
+-v ./spider_data:/sds/spider_data \
+-v ./websites:/sds/app/data/websites \
+-v ./logs:/var/log/supervisor \
+./software_uses:/sds/software_uses \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log" \
+--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default" \
+--name sds \
+public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
+```
+
+
+
 
