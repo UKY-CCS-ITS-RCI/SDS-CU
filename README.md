@@ -256,11 +256,13 @@ Stop and re-run the container with the following changes:
  - Mount the new example_uses directory to the container (`-v ./software_uses:/sds/software_uses`)
 
 ```bash
+# Give sds sudo permissions (as root)
+usermod -aG docker sds
+```
+
+```bash
 # stop and remove the container
 podman stop sds && podman rm sds
-
-# Give sds sudo permissions
-usermod -aG docker sds
 
 # rerun the container with the appropriate port and mounts
 # You will need to run podman with sudo permissions
