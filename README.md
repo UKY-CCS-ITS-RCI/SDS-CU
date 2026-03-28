@@ -68,6 +68,7 @@ nano config.yaml
 ```bash
 
 mkdir spider_data container_data software_uses websites logs analytics
+touch logs/sds-internal.log
 
 cd spider_data
 
