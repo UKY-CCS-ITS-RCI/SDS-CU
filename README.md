@@ -186,8 +186,8 @@ server {
     listen 443 ssl;
     server_name localhost;
 
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
+    ssl_certificate /etc/nginx/ssl/self_temp.cert;
+    ssl_certificate_key /etc/nginx/ssl/self_temp.key;
 
     location / {
         proxy_pass http://localhost:8080;
@@ -206,7 +206,7 @@ EOF
 Stop and re-run the container with the following changes:
  - Add the appropriate ports (change -p 8080:80 to -p 443:443)
  - Mount the new config to the container (--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default")
-
+ - Mount the ssl directory (`-v ./ssl:/etc/nginx/ssl:ro,Z` the `Z` is for selinux)
 ```bash
 # stop and remove the container
 podman stop sds && podman rm sds
