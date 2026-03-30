@@ -93,11 +93,11 @@ cd ..
 
 # Or start container and mount minimal and other helpful directories (RECOMMENDED)
 podman run -d -p 8080:80 \
---mount type=bind,source="./config.yaml",target="/sds/config.yaml":Z \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
 -v ./spider_data:/sds/spider_data:Z \
 -v ./websites:/sds/app/data/websites:Z \
 -v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log":Z \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
@@ -145,11 +145,11 @@ podman image pull public.ecr.aws/access-ci-org-public-containers/support/standal
 
 # run container from latest image (on port 8080)
 podman run -d -p 8080:80 \
---mount type=bind,source="./config.yaml",target="/sds/config.yaml":Z \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
 -v ./spider_data:/sds/spider_data:Z \
 -v ./websites:/sds/app/data/websites:Z \
 -v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log":Z \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
@@ -217,12 +217,12 @@ usermod -aG docker sds
 # rerun the container with the appropriate port and mounts
 # You will need to run podman with sudo permissions
 sudo podman run -d -p 443:443 \
---mount type=bind,source="./config.yaml",target="/sds/config.yaml":Z \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
 -v ./spider_data:/sds/spider_data:Z \
 -v ./websites:/sds/app/data/websites:Z \
 -v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log":Z \
---mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default":Z \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
+--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default",relabel=private \
 -v ./ssl:/etc/nginx/ssl:ro,Z \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
@@ -269,13 +269,13 @@ podman stop sds && podman rm sds
 # rerun the container with the appropriate port and mounts
 # You will need to run podman with sudo permissions
 sudo podman run -d -p 443:443 \
---mount type=bind,source="./config.yaml",target="/sds/config.yaml":Z \
+--mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
 -v ./spider_data:/sds/spider_data \
 -v ./websites:/sds/app/data/websites \
 -v ./logs:/var/log/supervisor \
 ./software_uses:/sds/software_uses \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log" \
---mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default" \
+--mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
+--mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default",relabel=private \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ```
