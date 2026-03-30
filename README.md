@@ -223,6 +223,7 @@ sudo podman run -d -p 443:443 \
 -v ./logs:/var/log/supervisor \
 --mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log" \
 --mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default" \
+-v ./ssl:/etc/nginx/ssl:ro,Z \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ```
