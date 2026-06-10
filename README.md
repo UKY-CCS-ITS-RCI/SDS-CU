@@ -1,30 +1,30 @@
 # SDS Deployment Guide @ CU
 
-This guide explains how to set up and run **SDS** on a Linux system using Podman.  
-Follow each step in order — starting with Podman installation, then user and firewall setup, cloning repositories, and running the container.
-For the bare minimum setup see https://github.com/access-ci-org/SDS-Public/tree/stand-alone  
-For more detailed customization see [https://github.com/access-ci-org/SDS-Public/tree/stand-alone ](https://github.com/access-ci-org/SDS-Public/blob/stand-alone/SDS_SETUP.md)
+This guide explains how to set up and run **SDS** on a Linux system using Podman.
+Follow each step in order — starting with Podman installation, then user and firewall setup, preparing the data directory, and running the container.
+For the bare minimum setup see https://github.com/access-ci-org/SDS-Public/tree/stand-alone
+For more detailed customization see https://github.com/access-ci-org/SDS-Public/blob/stand-alone/SDS_SETUP.md
 
 ## Table of Contents
 
-1. [Step 0 – Ensure Podman Is Installed](#step-0--ensure-podman-is-installed)
-2. [Step 1 – Create User 'sds' and Configure Podman Access](#step-1--create-user-sds-and-configure-podman-access)
-3. [Step 2 – Pull Image](#step-2--pull-image)
-4. [Step 3 – Prepare `spider_data` and Other Directories](#step-3--prepare-spider_data-and-other-directories)
-5. [Step 4 – Run the Container](#step-4--run-the-container)
-6. [Step 5 – Stopping and Deleting Containers](#step-5--stopping-and-deleting-containers)
+1. [Step 0 : Ensure Podman Is Installed](#step-0--ensure-podman-is-installed)
+2. [Step 1 : Create User 'sds' and Configure Podman Access](#step-1--create-user-sds-and-configure-podman-access)
+3. [Step 2 : Pull Image](#step-2--pull-image)
+4. [Step 3 : Prepare the Data Directory](#step-3--prepare-the-data-directory)
+5. [Step 4 : Run the Container](#step-4--run-the-container)
+6. [Step 5 : Stopping and Deleting Containers](#step-5--stopping-and-deleting-containers)
 7. [Updating SDS](#updating-sds)
 8. [Enabling HTTPS/SSL](#enabling-httpsssl)
 9. [Custom or No Example Use](#custom-or-no-example-use)
 
 ---
 
-## Step 0 – Ensure Podman is installed
+## Step 0 : Ensure Podman is installed
 This should already be done on your system image
 
 ---
 
-## Step 1 – Create user 'sds' and configure Podman access
+## Step 1 : Create user 'sds' and configure Podman access
 
 ```bash
 # Create a new user for SDS
@@ -46,7 +46,7 @@ firewall-cmd --list-ports
 
 ---
 
-## Step 2 – Pull image
+## Step 2 : Pull image
 
 ```bash
 su - sds
@@ -63,55 +63,51 @@ nano config.yaml
 
 ---
 
-## Step 3 – Prepare spider_data and other directories
+## Step 3 : Prepare the data directory
+
+SDS reads all inputs from a single `data/` directory next to your `config.yaml`,
+and writes its own state (database, logs, analytics, cached website titles)
+under `data/state/` — no other directories or log files need to be created.
 
 ```bash
+# Create resource directories and download module files
+mkdir -p data/spider_data/alpine data/spider_data/blanca
 
-mkdir spider_data container_data software_uses websites logs analytics
-touch logs/sds-internal.log
-
-cd spider_data
-
-# Create directories and download module files
-mkdir alpine
-wget -O alpine/alpine_modulespider.out https://raw.githubusercontent.com/UKY-CCS-ITS-RCI/SDS-CU/main/alpine_modulespider.out
-
-mkdir blanca
-wget -O blanca/blanca_modulespider.out https://raw.githubusercontent.com/UKY-CCS-ITS-RCI/SDS-CU/main/blanca_modulespider.out
-
-# Return to main directory
-cd ..
+wget -O data/spider_data/alpine/alpine_modulespider.out https://raw.githubusercontent.com/UKY-CCS-ITS-RCI/SDS-CU/main/alpine_modulespider.out
+wget -O data/spider_data/blanca/blanca_modulespider.out https://raw.githubusercontent.com/UKY-CCS-ITS-RCI/SDS-CU/main/blanca_modulespider.out
 ```
 
 ---
 
-## Step 4 – Run the container
+## Step 4 : Run the container
+
+The container expects exactly one data mount at `/sds/data` (plus the config file):
 
 ```bash
-# Start container with minimal mounts
-# podman run -d -p 8080:80 --mount type=bind,source="./config.yaml",target="/sds/config.yaml" -v ./spider_data:/sds/spider_data --name sds public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
-
-# Or start container and mount minimal and other helpful directories (RECOMMENDED)
 podman run -d -p 8080:80 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
--v ./spider_data:/sds/spider_data:Z \
--v ./websites:/sds/app/data/websites:Z \
--v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
+-v ./data:/sds/data:Z \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
-
-# The other directories created in step 3 can also be mounted if used (mount them to `/sds/<folder_name>` in the container)
 
 # Verify running containers
 podman ps -a
 ```
 
+Notes:
+ - The container runs as an unprivileged user (UID 1000) and takes ownership of
+   `./data` at startup, so everything SDS writes is owned by UID 1000 rather than
+   root. The `:Z` on the data volume handles the SELinux labeling.
+ - If `./data` is on NFS with `root_squash`, the startup ownership fixup is
+   skipped — make sure the export allows UID 1000 to write.
+
 ---
 
-## Step 5 – Stopping and deleting containers
+## Step 5 : Stopping and deleting containers
 
-**The SDS will automatically rebuild/re-run if changes are made to the following locations: `config.yaml` , `spider_data` (and a few others)**  
+**SDS automatically picks up changes to files under `./data/` — just edit them on the host, no container restart needed. Only changes to `config.yaml` (or adding a new mount) require stopping and re-running the container.**
+
+Logs are written to `./data/state/logs/` on the host (`sds.log`, `sds-stdout.log`, `nginx-access.log`, `nginx-error.log`, `supervisord.log`).
 
 ```bash
 # Stop running containers
@@ -129,13 +125,37 @@ podman rm sds
 
 ---
 
-**That’s it!**  
-Your SDS service should now be running and accessible on ports **8080**.
+**That's it!**
+Your SDS service should now be running and accessible on port **8080**.
 
 ---
 
 ## Updating SDS
+
+### One-time migration from pre-v1.4.0
+
+If your existing deployment uses the old multi-mount layout (separate
+`spider_data`, `websites`, `logs`, ... mounts), run the migration script once
+before updating — the v1.4.0+ container refuses to start on the old layout:
+
+```bash
+# stop and remove the old container
+podman stop sds && podman rm sds
+
+# move existing files into the new ./data/ layout
+wget https://raw.githubusercontent.com/access-ci-org/SDS-Public/stand-alone/migrate_data_layout.sh
+bash migrate_data_layout.sh
+```
+
+The script moves your existing files into `./data/` without overwriting
+anything and prints the new run command (shown as `docker run` — substitute
+`podman` for `docker`, the flags are identical). After it finishes, continue
+below.
+
+### Regular update
+
 Stop and remove the current container, pull the latest image, and rerun the command
+
 ```bash
 # stop and remove container
 podman stop sds && podman rm sds
@@ -146,10 +166,7 @@ podman image pull public.ecr.aws/access-ci-org-public-containers/support/standal
 # run container from latest image (on port 8080)
 podman run -d -p 8080:80 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
--v ./spider_data:/sds/spider_data:Z \
--v ./websites:/sds/app/data/websites:Z \
--v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
+-v ./data:/sds/data:Z \
 --name sds \
 public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 
@@ -173,30 +190,31 @@ firewall-cmd --list-ports
 Create a `ssl` directory and add your keys into it
 
 ```bash
-# make .ssl directory
+# make ssl directory
 mkdir ssl
-# add you ssl certificate (cert.pem) and key (key.pem) to the ssl directory
+# add your ssl certificate (cert.pem) and key (key.pem) to the ssl directory
 
 ```
 
 Create a nginx config file
+
 ```bash
-cat << EOF > nginx.conf
+cat << 'EOF' > nginx.conf
 server {
     listen 443 ssl;
     server_name localhost;
 
-    ssl_certificate /etc/nginx/ssl/self_temp.cert;
-    ssl_certificate_key /etc/nginx/ssl/self_temp.key;
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    access_log /var/log/supervisor/nginx-access.log;
+    access_log /sds/data/state/logs/nginx-access.log;
 
     client_max_body_size 100M;
 }
@@ -211,17 +229,11 @@ Stop and re-run the container with the following changes:
 # stop and remove the container
 podman stop sds && podman rm sds
 
-# Give sds sudo permissions
-usermod -aG docker sds
-
 # rerun the container with the appropriate port and mounts
-# You will need to run podman with sudo permissions
+# binding port 443 requires root, so run podman with sudo
 sudo podman run -d -p 443:443 \
 --mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
--v ./spider_data:/sds/spider_data:Z \
--v ./websites:/sds/app/data/websites:Z \
--v ./logs:/var/log/supervisor:Z \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
+-v ./data:/sds/data:Z \
 --mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default",relabel=private \
 -v ./ssl:/etc/nginx/ssl:ro,Z \
 --name sds \
@@ -229,13 +241,20 @@ public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
 ```
 
 ## Custom or No Example Use
-Make sure a `software_uses` directory exists in your system and navigate to it
+
+Example use files live inside the data directory, so they reach the container
+through the existing data mount — no extra mount or container restart needed.
+
+Make sure a `data/software_uses` directory exists and navigate to it
+
 ```
-mkdir software_uses
-cd software_uses
+mkdir -p data/software_uses
+cd data/software_uses
 ```
 
-Inside of each directory create a file with the software name as the file name
+Inside the directory create a file with the software name as the file name
+(a `.md` suffix is optional)
+
 ```
 # e.g. 'touch python' for instructions for the python software
 touch <software_name>
@@ -244,42 +263,13 @@ touch <software_name>
 **Leave the file empty if you don't want any example usage information to show for that software**
 
 Add any example use information into that file in markdown format
+
 ```bash
-cat << EOF > python
+cat << 'EOF' > python
 # Entering python environment
 To enter a python environment run `python3` on your terminal
 
-# Existing a python environment
+# Exiting a python environment
 To exit a python environment run `exit()` from within the environment
 EOF
 ```
-
-Stop and re-run the container with the following changes:
- - Mount the new example_uses directory to the container (`-v ./software_uses:/sds/software_uses`)
-
-```bash
-# Give sds sudo permissions (as root)
-usermod -aG docker sds
-```
-
-```bash
-# stop and remove the container
-podman stop sds && podman rm sds
-
-# rerun the container with the appropriate port and mounts
-# You will need to run podman with sudo permissions
-sudo podman run -d -p 443:443 \
---mount type=bind,source="./config.yaml",target="/sds/config.yaml",relabel=private \
--v ./spider_data:/sds/spider_data \
--v ./websites:/sds/app/data/websites \
--v ./logs:/var/log/supervisor \
-./software_uses:/sds/software_uses \
---mount type=bind,source="./logs/sds-internal.log",target="/sds/logs/sds.log",relabel=private \
---mount type=bind,source="./nginx.conf",target="/etc/nginx/sites-available/default",relabel=private \
---name sds \
-public.ecr.aws/access-ci-org-public-containers/support/standalone-sds:latest
-```
-
-
-
-
